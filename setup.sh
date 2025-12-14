@@ -49,7 +49,9 @@ client = genai.Client(
 )
 
 def get_response(user_message: str) -> str:
-    instruction = "Translate user query into Chinese"
+    instruction = f"""
+
+    """.strip()
     
     prompt = f"""
     Instruction:
@@ -437,12 +439,14 @@ gcloud run deploy chatbot-mvp --image gcr.io/hanlin-0415/chatbot --platform mana
 
 echo "Deployment complete! Click the Service URL above."
 
+# 7. update the code
+# git add setup.sh && git commit -m "the update content of the code" && git push
 
-# 7. Delete service 
+# 8. Delete service 
 # gcloud run services delete chatbot-mvp --region us-central1 --project hanlin-0415 
 
-# 8. Delete image 
+# 9. Delete image 
 # gcloud container images delete gcr.io/hanlin-0415/chatbot --force-delete-tags 
 
-# 9. Delete local files 
+# 10. Delete local files 
 # rm -rf backend frontend Dockerfile .gcloudignore
