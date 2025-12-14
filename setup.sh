@@ -1,7 +1,5 @@
-#!/bin/bash
-
-# ===== AUTOMATED SETUP & DEPLOY (LIGHT MODE + MARKDOWN) =====
-# Usage: 
+# ===== CREATE AN ONLINE APP =====
+# Run this command in the terminal to create the app:
 # chmod +x setup.sh && ./setup.sh
 
 # 1. Login to GCP
@@ -441,8 +439,8 @@ gcloud run deploy my-app-image --image gcr.io/hanlin-0415/my_app --platform mana
 
 echo "Deployment complete! Click the Service URL above."
 
-# 7. update the code
-# git add setup.sh && git commit -m "the update content of the code" && git push
+# 7. update the code to the github
+# git add setup.sh && git commit -m "my comment" && git push
 
 # 8. Delete service 
 # gcloud run services delete my-app-image --region us-central1 --project hanlin-0415 
