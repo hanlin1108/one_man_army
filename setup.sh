@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # ===== AUTOMATED SETUP & DEPLOY (LIGHT MODE + MARKDOWN) =====
-# Usage: chmod +x setup.sh && ./setup.sh
+# Usage: 
+# chmod +x setup.sh && ./setup.sh
 
 # 1. Login to GCP
 gcloud auth application-default login
@@ -19,7 +20,7 @@ pip install -q fastapi uvicorn google-genai python-dotenv
 # 4. Setup React frontend
 echo "Setting up Frontend..."
 rm -rf frontend
-npm create vite@latest frontend -- --template react
+yes n | npm create -y vite@latest frontend -- --template react
 cd frontend
 npm install
 npm install react-markdown
@@ -50,6 +51,7 @@ client = genai.Client(
 
 def get_response(user_message: str) -> str:
     instruction = f"""
+
 
     """.strip()
     
@@ -432,10 +434,10 @@ EOF
 
 # 6. Build and deploy
 echo "Building container..."
-gcloud builds submit --tag gcr.io/hanlin-0415/chatbot . --quiet
+gcloud builds submit --tag gcr.io/hanlin-0415/my_app . --quiet
 
 echo "Deploying to Cloud Run..."
-gcloud run deploy chatbot-mvp --image gcr.io/hanlin-0415/chatbot --platform managed --region us-central1 --allow-unauthenticated --quiet
+gcloud run deploy my-app-image --image gcr.io/hanlin-0415/my_app --platform managed --region us-central1 --allow-unauthenticated --quiet
 
 echo "Deployment complete! Click the Service URL above."
 
@@ -443,10 +445,10 @@ echo "Deployment complete! Click the Service URL above."
 # git add setup.sh && git commit -m "the update content of the code" && git push
 
 # 8. Delete service 
-# gcloud run services delete chatbot-mvp --region us-central1 --project hanlin-0415 
+# gcloud run services delete my-app-image --region us-central1 --project hanlin-0415 
 
 # 9. Delete image 
-# gcloud container images delete gcr.io/hanlin-0415/chatbot --force-delete-tags 
+# gcloud container images delete gcr.io/hanlin-0415/my_app --force-delete-tags 
 
 # 10. Delete local files 
 # rm -rf backend frontend Dockerfile .gcloudignore
