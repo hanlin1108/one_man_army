@@ -1,24 +1,16 @@
 #!/bin/bash
 
-# ===== AUTOMATED SETUP & DEPLOY (FIXED VERSION) =====
-# Usage:
-# chmod +x setup.sh && ./setup.sh
+# ===== AUTOMATED SETUP & DEPLOY (LIGHT MODE + MARKDOWN) =====
+# Usage: chmod +x setup.sh && ./setup.sh
 
-
-# 1. Login to GCP first
+# 1. Login to GCP
 gcloud auth application-default login
-
-
-# Enable necessary APIs (Prevents permission errors)
-# echo "Enabling Google Cloud APIs..."
-# gcloud services enable aiplatform.googleapis.com run.googleapis.com cloudbuild.googleapis.com
 
 # 2. Create project structure
 mkdir -p backend
 
 # 3. Setup Python backend
 echo "Setting up Backend..."
-# Remove old venv if it exists to be safe
 rm -rf backend/venv
 python3 -m venv backend/venv
 source backend/venv/bin/activate
@@ -26,10 +18,11 @@ pip install -q fastapi uvicorn google-genai python-dotenv
 
 # 4. Setup React frontend
 echo "Setting up Frontend..."
-rm -rf frontend # Clean start
+rm -rf frontend
 npm create vite@latest frontend -- --template react
 cd frontend
 npm install
+npm install react-markdown
 cd ..
 
 # 5. Create all files
@@ -46,7 +39,6 @@ cat > backend/ai.py << 'EOF'
 from google import genai
 import os
 
-# Use environment variable for project ID to make it portable
 PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT", "hanlin-0415")
 LOCATION = "us-central1"
 
@@ -57,10 +49,20 @@ client = genai.Client(
 )
 
 def get_response(user_message: str) -> str:
+    instruction = "Translate user query into Chinese"
+    
+    prompt = f"""
+    Instruction:
+    {instruction}
+
+    Query:
+    {user_message}
+    """
+    
     try:
         response = client.models.generate_content(
             model="gemini-2.5-flash",
-            contents=user_message
+            contents=prompt
         )
         return response.text
     except Exception as e:
@@ -93,7 +95,6 @@ async def chat_endpoint(request: ChatRequest):
     ai_reply = get_response(request.message)
     return {"reply": ai_reply}
 
-# Serve static files (React App)
 try:
     if os.path.isdir("dist"):
         app.mount("/", StaticFiles(directory="dist", html=True), name="static")
@@ -126,14 +127,14 @@ cat > frontend/src/index.css << 'EOF'
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {
   margin: 0;
   padding: 0;
-  background-color: #131314;
-  color: #e3e3e3;
+  background-color: #ffffff;
+  color: #1f1f1f;
   width: 100vw;
   height: 100vh;
   overflow: hidden;
@@ -157,14 +158,14 @@ cat > frontend/src/App.css << 'EOF'
 .header {
   padding: 1rem;
   text-align: center;
-  border-bottom: 1px solid #2d2d2d;
-  background: #131314;
+  border-bottom: 1px solid #e0e0e0;
+  background: #ffffff;
 }
 
 .header h1 {
   font-size: 1.1rem;
   margin: 0;
-  color: #c4c7c5;
+  color: #1f1f1f;
   font-weight: 500;
 }
 
@@ -182,14 +183,16 @@ cat > frontend/src/App.css << 'EOF'
   flex-direction: column;
   gap: 0.35rem;
   padding: 0.9rem 1rem;
-  border: 1px solid #2d2d2d;
+  border: 1px solid #e0e0e0;
   border-radius: 12px;
-  background: #1e1f20;
+  background: #f8f9fa;
   animation: fadeIn 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
 
 .message.user {
-  border-color: #3a3a3a;
+  background: #ffffff;
+  border-color: #d1d1d1;
 }
 
 @keyframes fadeIn {
@@ -199,15 +202,50 @@ cat > frontend/src/App.css << 'EOF'
 
 .role-name {
   font-size: 0.85rem;
-  color: #c4c7c5;
+  color: #5f6368;
   font-weight: 600;
 }
 
+/* Markdown Styles */
 .text {
   font-size: 1rem;
   line-height: 1.6;
-  white-space: pre-wrap;
-  color: #e3e3e3;
+  color: #1f1f1f;
+  overflow-wrap: break-word;
+}
+
+.text p {
+  margin: 0.5rem 0;
+}
+.text p:first-child { margin-top: 0; }
+.text p:last-child { margin-bottom: 0; }
+
+.text ul, .text ol {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+}
+
+.text code {
+  background-color: #e8eaed;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 0.9em;
+}
+
+.text pre {
+  background-color: #2d2d2d;
+  color: #f8f8f8;
+  padding: 1rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 0.5rem 0;
+}
+
+.text pre code {
+  background-color: transparent;
+  padding: 0;
+  color: inherit;
 }
 
 .input-area {
@@ -215,7 +253,7 @@ cat > frontend/src/App.css << 'EOF'
   bottom: 0;
   left: 0;
   right: 0;
-  background: linear-gradient(to top, #131314 80%, transparent);
+  background: linear-gradient(to top, #ffffff 80%, transparent);
   padding: 1.25rem 1rem;
   display: flex;
   justify-content: center;
@@ -224,32 +262,34 @@ cat > frontend/src/App.css << 'EOF'
 .input-container {
   width: 100%;
   max-width: 900px;
-  background: #1e1f20;
+  background: #f0f2f5;
   border-radius: 14px;
   padding: 0.5rem 0.75rem;
   display: flex;
   align-items: center;
   gap: 10px;
-  border: 1px solid #444746;
+  border: 1px solid transparent;
 }
 
 .input-container:focus-within {
-  border-color: #6a6a6a;
+  background: #ffffff;
+  border-color: #1f1f1f;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
 }
 
 input {
   flex: 1;
   background: transparent;
   border: none;
-  color: white;
+  color: #1f1f1f;
   font-size: 1rem;
   padding: 10px;
   outline: none;
 }
 
 button {
-  background: #e3e3e3;
-  color: #131314;
+  background: #1f1f1f;
+  color: #ffffff;
   border: none;
   border-radius: 10px;
   height: 38px;
@@ -267,12 +307,13 @@ EOF
 
 cat > frontend/src/App.jsx << 'EOF'
 import { useState, useRef, useEffect } from 'react'
+import ReactMarkdown from 'react-markdown'
 import './App.css'
 
 function App() {
   const [input, setInput] = useState('')
   const [messages, setMessages] = useState([
-    { role: 'assistant', text: 'Hi! Ask me anything.' }
+    { role: 'AI', text: 'Hi! Ask me anything.' }
   ])
   const [isLoading, setIsLoading] = useState(false)
   const messagesEndRef = useRef(null)
@@ -302,9 +343,9 @@ function App() {
       })
 
       const data = await response.json()
-      setMessages([...nextMessages, { role: 'assistant', text: data.reply }])
+      setMessages([...nextMessages, { role: 'AI', text: data.reply }])
     } catch (error) {
-      setMessages([...nextMessages, { role: 'assistant', text: 'Error: Could not connect to backend.' }])
+      setMessages([...nextMessages, { role: 'AI', text: 'Error: Could not connect to backend.' }])
     } finally {
       setIsLoading(false)
     }
@@ -319,14 +360,16 @@ function App() {
       <div className="chat-window">
         {messages.map((msg, idx) => (
           <div key={idx} className={`message ${msg.role === 'user' ? 'user' : ''}`}>
-            <div className="role-name">{msg.role === 'user' ? 'User' : 'Assistant'}</div>
-            <div className="text">{msg.text}</div>
+            <div className="role-name">{msg.role === 'user' ? 'User' : 'AI'}</div>
+            <div className="text">
+              <ReactMarkdown>{msg.text}</ReactMarkdown>
+            </div>
           </div>
         ))}
 
         {isLoading && (
           <div className="message">
-            <div className="role-name">Assistant</div>
+            <div className="role-name">AI</div>
             <div className="text" style={{ fontStyle: 'italic' }}>Thinking...</div>
           </div>
         )}
@@ -355,7 +398,7 @@ function App() {
 export default App
 EOF
 
-# --- Configuration Files ---
+# --- Config & Deploy ---
 
 cat > Dockerfile << 'EOF'
 FROM node:22 as build-stage
@@ -390,7 +433,6 @@ echo "Building container..."
 gcloud builds submit --tag gcr.io/hanlin-0415/chatbot . --quiet
 
 echo "Deploying to Cloud Run..."
-# Using a single line for the command to avoid copy-paste line break issues
 gcloud run deploy chatbot-mvp --image gcr.io/hanlin-0415/chatbot --platform managed --region us-central1 --allow-unauthenticated --quiet
 
 echo "Deployment complete! Click the Service URL above."
@@ -399,10 +441,8 @@ echo "Deployment complete! Click the Service URL above."
 # 7. Delete service 
 # gcloud run services delete chatbot-mvp --region us-central1 --project hanlin-0415 
 
-
 # 8. Delete image 
 # gcloud container images delete gcr.io/hanlin-0415/chatbot --force-delete-tags 
-
 
 # 9. Delete local files 
 # rm -rf backend frontend Dockerfile .gcloudignore
